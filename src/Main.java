@@ -1,11 +1,14 @@
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.event.MouseEvent;
+import java.awt.event.MouseListener;
 import java.util.ArrayList;
 import java.util.Arrays;
 import javax.swing.*;
 import java.util.Scanner;  // Import the Scanner class
 
+import static java.lang.System.console;
 import static java.lang.System.exit;
 
 
@@ -18,6 +21,7 @@ public class Main {
     public static Scanner scanner;
     public static int[][] demons;
     public static final String ANSI_RESET = "\u001B[0m";
+    public static final boolean gluttony = true;
 
     public static void main(String[] args) {
 
@@ -91,7 +95,7 @@ public class Main {
                                 demonCounter++;
                             }
                         }
-                        if (board[y + yOffset][x + xOffset] >= 0 || demonCounter > 1) {
+                        if (board[y + yOffset][x + xOffset] >= 0 || demonCounter > 1 || (gluttony && board[y + yOffset][x + xOffset] == -0x11111111)) {
                             continue outer;
                         }
                         board[y + yOffset][x + xOffset] = segment;
@@ -113,7 +117,7 @@ public class Main {
         for (int y = 0; y < board.length; y++) {
             System.out.println();
             for (int x = 0; x < board[0].length; x++) {
-                String character = "";
+                String character = "-";
                 switch (board[y][x]){
                     case 0:
                         character = "\u001B[31m@";
@@ -139,9 +143,13 @@ public class Main {
                     case 7:
                         character = "\u001B[93m£";
                         break;
+                    case -0x11111111:
+                        character = " ";
+                        break;
                 }
 //                System.out.print("|" + (board[y][x]? "True" : "False")  + "|");
-                System.out.print("| " + (board[y][x] >= 0 ? character + ANSI_RESET : "-")  + " |");
+//                System.out.print("| " + (board[y][x] >= 0 || board[y][x] == -0x11111111 ? character + ANSI_RESET : "-")  + " |");
+                System.out.print("| " + (character + ANSI_RESET)  + " |");
 //                System.out.print("|#|");
             }
 
@@ -166,6 +174,9 @@ public class Main {
         numberSegments = new Piece[scanner.nextInt()];
 
         int[][] board = new int[boardHeight][boardWidth];
+        for(int[] arr1 : board) {
+            Arrays.fill(arr1, -1);
+        }
 
         switch (2) {
             case 1:
@@ -185,27 +196,78 @@ public class Main {
                 JPanel p = new JPanel(new GridLayout(boardHeight, boardWidth)); //PREFERRED!
 
                 demonPlacer.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-                JToggleButton[] buttons = new JToggleButton[boardWidth*boardHeight];
+                JButton[] buttons = new JButton[boardWidth*boardHeight];
 
                 for(int i = 0; i < buttons.length; i++) {
 
-                    buttons[i] = new JToggleButton();
+                    buttons[i] = new JButton("");
                     buttons[i].setName(String.valueOf(i));
                     p.add(buttons[i]);
-                    buttons[i].addActionListener(new ActionListener() {
+                    buttons[i].addMouseListener(new MouseListener() {
                         @Override
-                        public void actionPerformed(ActionEvent e) {
-                            JToggleButton button = (JToggleButton) e.getSource();
+                        public void mouseClicked(MouseEvent e) {
+                            JButton button = (JButton) e.getSource();
                             int element = Integer.parseInt(button.getName());
 
-                            demonsArray.add(new int[]{1+(element % boardWidth), 1+(element / boardWidth)});
 
-                            demons = new int[demonsArray.size()][2];
+                            if (e.getButton() == 1) {
+                                boolean tapped = false;
+                                for (int x = 0; x < demonsArray.size(); x++) {
+                                    if (demonsArray.get(x)[0] == 1+(element % boardWidth) && demonsArray.get(x)[1] == 1+(element / boardWidth)) {
+                                        demonsArray.remove(x);
+                                        button.setBackground(Color.GRAY);
+                                        tapped = true;
+                                        break;
+                                    }
+                                }
 
-                            for (int i = 0; i < demons.length; i++) {
-                                demons[i] = demonsArray.get(i);
+                                if (!tapped) {
+                                    demonsArray.add(new int[]{
+                                            1+(element % boardWidth),
+                                            1+(element / boardWidth)
+                                    });
+
+                                    demons = new int[demonsArray.size()][2];
+
+                                    for (int i = 0; i < demons.length; i++) {
+                                        demons[i] = demonsArray.get(i);
+                                    }
+                                    button.setBackground(Color.MAGENTA);
+                                }
+
+                            } else if (e.getButton() == 3 && gluttony) {
+                                button.setBackground(Color.GREEN);
+                                for (int x = 0; x < demonsArray.size(); x++) {
+                                    if (demonsArray.get(x)[0] == 1+(element % boardWidth) && demonsArray.get(x)[1] == 1+(element / boardWidth)) {
+                                        demonsArray.remove(x);
+                                        break;
+                                    }
+                                }
+                                board[(element / boardWidth)][(element % boardWidth)] = -0x11111111;
                             }
                         }
+
+                        @Override
+                        public void mousePressed(MouseEvent e) {
+
+                        }
+
+                        @Override
+                        public void mouseReleased(MouseEvent e) {
+
+                        }
+
+                        @Override
+                        public void mouseEntered(MouseEvent e) {
+
+                        }
+
+                        @Override
+                        public void mouseExited(MouseEvent e) {
+
+                        }
+
+
                     });
                 }
 
@@ -227,9 +289,7 @@ public class Main {
 
         }
 
-        for(int[] arr1 : board) {
-            Arrays.fill(arr1, -1);
-        }
+
 
 
 
